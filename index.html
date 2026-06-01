@@ -1204,37 +1204,28 @@ function e(tag, attrs, ...children) {
 function renderSectionContent(sec, li, si) {
   const key = li + '-' + si;
   const open = !!state.expandedSections[key];
-  let body = '';
-  if (open) {
-    // Simple
-    body += `<div class="section-body" id="sec-body-${key}">`;
-    body += `<div class="simple-block"><span class="tag" style="background:#FDDFE8;color:#A04A65;">Simple Explanation</span><p class="block-text">${sec.simple}</p></div>`;
-    // Academic
-    body += `<div class="academic-block"><span class="tag" style="background:#F0C8D8;color:#7A3050;">Academic Detail</span><p class="academic-text">${sec.academic}</p></div>`;
-    // Key Terms
-    if (sec.keyTerms && sec.keyTerms.length) {
-      body += `<div style="margin-bottom:14px;"><span class="tag" style="background:#E8D4F0;color:#6A3080;">Key Terms</span><div class="terms-grid" style="margin-top:8px;">`;
-      sec.keyTerms.forEach(kt => {
-        body += `<div class="term-card"><span class="term-name">${kt.term}:</span> ${kt.def}</div>`;
-      });
-      body += `</div></div>`;
-    }
-    // Exam points
-    if (sec.examPoints && sec.examPoints.length) {
-      body += `<div class="exam-block"><span class="tag" style="background:#F8E8C8;color:#8A6020;">🎯 High-Yield Exam Points</span>`;
-      sec.examPoints.forEach(ep => {
-        body += `<div class="exam-point"><span class="exam-bullet">▸</span><span>${ep}</span></div>`;
-      });
-      body += `</div>`;
-    }
-    // Confusion
-    if (sec.confusion) {
-      body += `<div class="confusion-block"><span class="tag" style="background:#F8D0D0;color:#904040;">⚠️ Common Confusion</span><p class="confusion-text">${sec.confusion}</p></div>`;
-    }
-    body += `</div>`;
-  } else {
-    body += `<div class="section-body" id="sec-body-${key}" style="display:none;"></div>`;
+  // Always render full content — just hide/show with display
+  let body = `<div class="section-body" id="sec-body-${key}" style="display:${open ? 'block' : 'none'};">`;
+  body += `<div class="simple-block"><span class="tag" style="background:#FDDFE8;color:#A04A65;">Simple Explanation</span><p class="block-text">${sec.simple}</p></div>`;
+  body += `<div class="academic-block"><span class="tag" style="background:#F0C8D8;color:#7A3050;">Academic Detail</span><p class="academic-text">${sec.academic}</p></div>`;
+  if (sec.keyTerms && sec.keyTerms.length) {
+    body += `<div style="margin-bottom:14px;"><span class="tag" style="background:#E8D4F0;color:#6A3080;">Key Terms</span><div class="terms-grid" style="margin-top:8px;">`;
+    sec.keyTerms.forEach(kt => {
+      body += `<div class="term-card"><span class="term-name">${kt.term}:</span> ${kt.def}</div>`;
+    });
+    body += `</div></div>`;
   }
+  if (sec.examPoints && sec.examPoints.length) {
+    body += `<div class="exam-block"><span class="tag" style="background:#F8E8C8;color:#8A6020;">🎯 High-Yield Exam Points</span>`;
+    sec.examPoints.forEach(ep => {
+      body += `<div class="exam-point"><span class="exam-bullet">▸</span><span>${ep}</span></div>`;
+    });
+    body += `</div>`;
+  }
+  if (sec.confusion) {
+    body += `<div class="confusion-block"><span class="tag" style="background:#F8D0D0;color:#904040;">⚠️ Common Confusion</span><p class="confusion-text">${sec.confusion}</p></div>`;
+  }
+  body += `</div>`;
 
   return `
     <div class="card" style="margin-bottom:14px;overflow:hidden;">
