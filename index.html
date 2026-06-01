@@ -1,10 +1,427 @@
-import { useState, useCallback, useMemo } from "react";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>ARCG 521 — Architectural Professional Practice Study Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: 'Crimson Pro', 'Georgia', serif;
+      background: #FFF7F9;
+      color: #3D2B2B;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: #E8B4C0; border-radius: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
 
+    /* ── Buttons reset ── */
+    button { font-family: inherit; cursor: pointer; border: none; background: none; padding: 0; }
+
+    /* ── Header ── */
+    #app-header {
+      background: linear-gradient(135deg, #F9E0E8 0%, #F2C4D3 50%, #E8A8BE 100%);
+      padding: 20px 16px 18px;
+      border-bottom: 1px solid #E8B4C0;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; gap: 12;
+    }
+    #hamburger {
+      display: none;
+      background: rgba(255,255,255,0.65);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 20px;
+      line-height: 1;
+      flex-shrink: 0;
+      border: 1px solid rgba(200,130,160,0.2);
+    }
+    .header-text { flex: 1; min-width: 0; }
+    .header-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 2.5px; text-transform: uppercase;
+      color: #8C4A60; margin-bottom: 3px;
+    }
+    .header-title {
+      font-size: clamp(16px, 3.5vw, 24px);
+      font-weight: 700; color: #4A1A2E; line-height: 1.2;
+    }
+    .header-sub {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px; color: #8C4A60; margin-top: 3px;
+    }
+    .progress-box { text-align: right; font-family: 'DM Sans', sans-serif; flex-shrink: 0; }
+    .progress-label { font-size: 10px; color: #8C4A60; font-weight: 600; margin-bottom: 4px; }
+    .progress-bar {
+      width: 100px; height: 7px;
+      background: #F5D0DB; border-radius: 4px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #D4849B, #B05C78);
+      border-radius: 4px; transition: width 0.5s ease;
+    }
+    .progress-pct { font-size: 10px; color: #8C4A60; margin-top: 2px; }
+
+    /* ── Layout ── */
+    #layout {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; position: relative;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(60,30,40,0.35);
+      z-index: 998;
+    }
+    #sidebar {
+      width: 260px; min-width: 260px;
+      padding: 20px 14px;
+      border-right: 1px solid #F0D0DA;
+      background: #FFFAFB;
+      position: sticky; top: 72px;
+      height: calc(100vh - 72px);
+      height: calc(100dvh - 72px);
+      overflow-y: auto;
+      transition: transform 0.3s ease;
+      z-index: 999;
+      flex-shrink: 0;
+    }
+    .sidebar-section-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase;
+      color: #B0758A; margin-bottom: 14px; padding-left: 8px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10;
+      width: 100%; padding: 10px 12px;
+      border-radius: 10px; margin-bottom: 3px;
+      text-align: left;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 400;
+      color: #6B4A55;
+      transition: all 0.2s ease;
+      line-height: 1.3;
+    }
+    .nav-item:hover { background: #FDF0F4; }
+    .nav-item.active {
+      background: linear-gradient(135deg, #F9E0E8, #F0C8D8);
+      color: #6A2040; font-weight: 600;
+    }
+    .nav-icon { font-size: 18px; flex-shrink: 0; }
+    .nav-divider { height: 1px; background: #F0D0DA; margin: 14px 0; }
+
+    /* ── Main ── */
+    #main-content {
+      flex: 1; min-width: 0;
+      padding: 24px clamp(14px, 3vw, 32px);
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #F5DDE3;
+      box-shadow: 0 2px 12px rgba(200,130,160,0.08);
+      transition: box-shadow 0.3s ease;
+    }
+    .card:hover { box-shadow: 0 4px 20px rgba(200,130,160,0.14); }
+
+    /* ── Tag ── */
+    .tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    /* ── Expand button ── */
+    .expand-btn {
+      width: 100%; text-align: left;
+      padding: 14px 18px;
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 10px;
+      font-family: inherit;
+      border-radius: 16px;
+    }
+    .expand-btn-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+    .sec-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px; font-weight: 700;
+      flex-shrink: 0;
+      transition: all 0.25s;
+    }
+    .sec-num.closed { background: #F5DDE3; color: #8C4A60; }
+    .sec-num.open { background: linear-gradient(135deg, #D4849B, #B05C78); color: white; }
+    .sec-title { font-size: 15px; font-weight: 600; color: #4A1A2E; line-height: 1.3; }
+    .expand-arrow {
+      font-size: 16px; color: #C06080;
+      transition: transform 0.25s;
+      flex-shrink: 0;
+    }
+
+    /* ── Section body ── */
+    .section-body { padding: 0 18px 18px; animation: fadeIn 0.3s ease-out; }
+    .simple-block {
+      background: #FFF5F8; border-radius: 12px;
+      padding: 14px; margin-bottom: 14px;
+      border-left: 4px solid #E8A8BE;
+    }
+    .academic-block {
+      background: #FBF0F4; border-radius: 12px;
+      padding: 14px; margin-bottom: 14px;
+      border-left: 4px solid #D4849B;
+    }
+    .block-text {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; line-height: 1.7; color: #5A3545;
+    }
+    .academic-text {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; line-height: 1.75; color: #4A2535;
+    }
+    .terms-grid { display: grid; gap: 7px; margin-bottom: 14px; }
+    .term-card {
+      background: white;
+      border: 1px solid #F0D0DA;
+      border-radius: 10px;
+      padding: 9px 13px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; line-height: 1.5; color: #5A3545;
+    }
+    .term-name { font-weight: 700; color: #7A3050; }
+    .exam-block {
+      background: #FFF8E8; border-radius: 12px;
+      padding: 14px; margin-bottom: 14px;
+      border: 1px solid #F0E0C0;
+    }
+    .exam-point {
+      display: flex; gap: 8px; margin-bottom: 5px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; line-height: 1.55; color: #5A4020;
+    }
+    .exam-bullet { color: #C09030; font-weight: 700; flex-shrink: 0; margin-top: 0; }
+    .confusion-block {
+      background: #FFF0F0; border-radius: 12px;
+      padding: 12px 14px; margin-bottom: 6px;
+      border: 1px solid #F0C8C8;
+    }
+    .confusion-text {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; line-height: 1.55; color: #6A3030;
+    }
+
+    /* ── Quiz ── */
+    .quiz-toggle-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 13px 22px; border-radius: 12px;
+      background: linear-gradient(135deg, #D4849B, #B05C78);
+      color: white;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; font-weight: 600;
+      box-shadow: 0 4px 16px rgba(180,80,120,0.25);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .quiz-toggle-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(180,80,120,0.3); }
+    .quiz-item { padding: 16px; margin-bottom: 12px; }
+    .quiz-q { font-size: 14px; font-weight: 600; color: #4A1A2E; margin-bottom: 10px; line-height: 1.5; }
+    .reveal-btn {
+      padding: 7px 15px; border-radius: 8px;
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+      transition: all 0.2s;
+    }
+    .reveal-btn.hidden-ans { background: #FDE8EF; color: #8C4A60; }
+    .reveal-btn.shown-ans { background: #F0E8EB; color: #8C4A60; }
+    .quiz-answer {
+      margin-top: 10px; padding: 10px 13px;
+      background: #F5FFF5; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 13px;
+      line-height: 1.6; color: #2A5A2A;
+      border: 1px solid #C8E8C8;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    /* ── MCQ ── */
+    .mcq-opt {
+      border: 2px solid #F0D0DA; border-radius: 10px;
+      padding: 10px 14px; cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'DM Sans', sans-serif; font-size: 13px;
+      background: white; display: block; width: 100%;
+      text-align: left; margin-bottom: 6px; line-height: 1.4;
+    }
+    .mcq-opt:hover { border-color: #D4849B; background: #FFF0F4; }
+    .mcq-opt.selected { border-color: #C06080; background: #FDE8EF; }
+    .mcq-opt.correct { border-color: #6BAF7B; background: #E8F5EC; }
+    .mcq-opt.wrong { border-color: #D46B6B; background: #FDECEC; }
+    .mcq-explain {
+      margin-top: 10px; padding: 9px 13px;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 13px; line-height: 1.5;
+    }
+
+    /* ── Checklist ── */
+    .checklist-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 0;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; line-height: 1.5;
+      cursor: pointer;
+    }
+    .checklist-item input[type="checkbox"] {
+      margin-top: 2px;
+      accent-color: #C06080;
+      width: 17px; height: 17px;
+      flex-shrink: 0;
+    }
+    .checklist-label { transition: all 0.2s; }
+    .checklist-label.done { text-decoration: line-through; color: #B0A0A6; }
+    .checklist-divider { border: none; border-top: 1px solid #F5DDE3; margin: 0; }
+    .checklist-progress {
+      text-align: center; margin-top: 16px;
+      font-family: 'DM Sans', sans-serif; font-size: 13px; color: #8C5A6A;
+    }
+
+    /* ── Section heading ── */
+    .lecture-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .lecture-icon { font-size: 32px; }
+    .lecture-lbl {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase; color: #C06080;
+    }
+    .lecture-title { font-size: clamp(18px, 3.5vw, 26px); font-weight: 700; color: #4A1A2E; line-height: 1.2; }
+    .lecture-divider {
+      height: 2px;
+      background: linear-gradient(90deg, #E8A8BE, transparent);
+      border-radius: 1px; margin-bottom: 22px;
+    }
+    .page-title {
+      font-size: 22px; font-weight: 700; color: #4A1A2E; margin-bottom: 5px;
+    }
+    .page-sub { font-family: 'DM Sans', sans-serif; font-size: 13px; color: #8C5A6A; margin-bottom: 22px; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center; padding: 20px 16px;
+      border-top: 1px solid #F0D0DA;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px; color: #B0758A;
+      margin-top: 40px;
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+
+    /* ── Mobile / iPad responsive ── */
+    @media (max-width: 900px) {
+      #hamburger { display: block; }
+      #sidebar {
+        position: fixed;
+        top: 0; left: 0;
+        width: min(280px, 85vw);
+        height: 100vh; height: 100dvh;
+        transform: translateX(-100%);
+        box-shadow: 4px 0 24px rgba(60,20,40,0.18);
+        padding-top: 60px;
+      }
+      #sidebar.open { transform: translateX(0); }
+      #sidebar-overlay.open { display: block; }
+      #main-content { padding: 18px 14px; max-width: 100%; }
+      #layout { flex-direction: column; }
+      .header-inner { gap: 10px; }
+      .progress-bar { width: 80px; }
+    }
+    @media (max-width: 480px) {
+      .header-title { font-size: 15px; }
+      .lecture-title { font-size: 17px; }
+      .expand-btn { padding: 12px 14px; }
+      .sec-title { font-size: 14px; }
+      .quiz-toggle-btn { font-size: 13px; padding: 11px 16px; }
+      .progress-box { display: none; }
+    }
+    /* iPad landscape: keep sidebar visible */
+    @media (min-width: 901px) {
+      #sidebar { display: block !important; transform: translateX(0) !important; }
+      #main-content { max-width: calc(100% - 260px); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════ HEADER ════ -->
+<header id="app-header">
+  <div class="header-inner" style="display:flex;align-items:center;gap:12px;">
+    <button id="hamburger" aria-label="Toggle menu" onclick="toggleSidebar()">☰</button>
+    <div class="header-text">
+      <div class="header-label">ARCG 521 — Study Guide</div>
+      <div class="header-title">Architectural Professional Practice</div>
+      <div class="header-sub">University of Bahrain · Lectures 1–5 · Complete Exam Preparation</div>
+    </div>
+    <div class="progress-box">
+      <div class="progress-label">Study Progress</div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="progress-pct" id="progress-pct">0%</div>
+    </div>
+  </div>
+</header>
+
+<!-- ════ LAYOUT ════ -->
+<div id="layout">
+
+  <!-- Sidebar overlay -->
+  <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- ── SIDEBAR ── -->
+  <nav id="sidebar" aria-label="Navigation">
+    <div class="sidebar-section-label">Lectures</div>
+    <div id="lecture-nav"></div>
+    <div class="nav-divider"></div>
+    <button class="nav-item" id="nav-mcq" onclick="showPage('mcq')">
+      <span class="nav-icon">📝</span><span>MCQ Bank (14 Questions)</span>
+    </button>
+    <button class="nav-item" id="nav-checklist" onclick="showPage('checklist')">
+      <span class="nav-icon">✅</span><span>Full Marks Checklist</span>
+    </button>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main id="main-content"></main>
+
+</div>
+
+<footer>ARCG 521 Study Guide · Covers Lectures 1–5 · All slide content included · Good luck on your exam! 🌸</footer>
+
+<script>
+// ══════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════
 const LECTURES = [
   {
-    id: 1,
-    title: "Introduction to the Profession of Architecture",
-    icon: "🏛️",
+    id: 1, title: "Introduction to the Profession of Architecture", icon: "🏛️",
     sections: [
       {
         title: "What is Architecture?",
@@ -123,9 +540,7 @@ const LECTURES = [
     ]
   },
   {
-    id: 2,
-    title: "The Building Team",
-    icon: "👷",
+    id: 2, title: "The Building Team", icon: "👷",
     sections: [
       {
         title: "The Profession of Architecture — Services",
@@ -182,7 +597,7 @@ const LECTURES = [
       },
       {
         title: "The Contracting Team — Members & Roles",
-        simple: "The contracting team does the actual building work. Led by the contractor, it includes managers, engineers, foremen, workers, and specialist subcontractors. Think of them as the army that turns the architect's plans into reality.",
+        simple: "The contracting team does the actual building work. Led by the contractor, it includes managers, engineers, foremen, workers, and specialist subcontractors.",
         academic: "The Contracting Team hierarchy: Contractor/Builder (employed by client on architect's advice to construct the building); Contracts/Project Manager (employed by contractor, supervises site managers across multiple contracts); Site/Construction Manager (controls work on site); Site Engineer (responsible for setting out and accuracy); General Foreman (day-to-day site running, link between management and operatives); Trade Foremen (in charge of gangs/crews of specific trades); Site Operatives (workforce: tradespeople, apprentices, labourers); Other Staff (buyers, plant managers, storekeepers, timekeepers, wages clerks); Surveyor/QS (prepares interim valuations and final accounts); Estimator (prices tenders, involved in pre-contract cost aspects); Scheduler/Planner (scheduling and programme planning); Subcontractors (responsible for specific parts of construction); Suppliers (supply materials/components).",
         keyTerms: [
           { term: "Contractor/Builder", def: "Employed by the client (on architect's advice) to construct the building in accordance with the design team's documents." },
@@ -225,9 +640,7 @@ const LECTURES = [
     ]
   },
   {
-    id: 3,
-    title: "Types of Architectural Practices",
-    icon: "🏢",
+    id: 3, title: "Types of Architectural Practices", icon: "🏢",
     sections: [
       {
         title: "Introduction — Skills for Success",
@@ -347,9 +760,7 @@ const LECTURES = [
     ]
   },
   {
-    id: 4,
-    title: "Organisational Frameworks & Project Organisation",
-    icon: "📊",
+    id: 4, title: "Organisational Frameworks & Project Organisation", icon: "📊",
     sections: [
       {
         title: "Organisational Frameworks — Introduction",
@@ -384,7 +795,7 @@ const LECTURES = [
       {
         title: "Examples of Framework by Firm Size",
         simple: "A one-person practice uses the simplest structure. As firms grow, they add layers — project leaders, associates, and more tiers of management.",
-        academic: "Examples include: (1) Sole principal working alone — simplest. (2) One principal + one assistant. (3) Small firm with sole principal — shallow framework (principal directly controls all staff). (4) Medium firm with sole principal — mixed framework (principal employs project leaders PL1–PL3). (5) Large firm with sole principal — mixed framework with additional tiers (senior associates, project leaders, assistants). (6) Partnership — mixed framework with multiple partners and associates (e.g. 3 partners with 5 associates, Assoc.1–Assoc.5).",
+        academic: "Examples include: (1) Sole principal working alone — simplest. (2) One principal + one assistant. (3) Small firm with sole principal — shallow framework (principal directly controls all staff). (4) Medium firm with sole principal — mixed framework (principal employs project leaders PL1–PL3). (5) Large firm with sole principal — mixed framework with additional tiers (senior associates, project leaders, assistants). (6) Partnership — mixed framework with multiple partners and associates.",
         keyTerms: [
           { term: "Project Leader", def: "A senior assistant who receives instructions from the principal and directs a group of assistants on specific projects." },
           { term: "Associate", def: "A senior staff member in a partnership who works under the partners, often managing projects." }
@@ -454,9 +865,7 @@ const LECTURES = [
     ]
   },
   {
-    id: 5,
-    title: "Financial Aspects of Architectural Practice",
-    icon: "💰",
+    id: 5, title: "Financial Aspects of Architectural Practice", icon: "💰",
     sections: [
       {
         title: "Architectural Fees — Overview",
@@ -589,8 +998,7 @@ const MCQs = [
   { q: "In the percentage fee method, works to existing buildings typically cost:", opts: ["Less than new works", "The same as new works", "More than new works", "It depends on the contractor"], ans: 2, explain: "Existing building works range from 7.75–16.5% vs new works at 5–11.25%." },
   { q: "An LLP must:", opts: ["Have unlimited liability for all members", "End its name with 'LLP' and file returns", "Have at least 5 members", "Be approved by RIBA"], ans: 1, explain: "An LLP must end its name with 'LLP' and file returns with the registrar. Members' liability is limited." },
   { q: "Which is NOT one of the three RIBA Code principles?", opts: ["Integrity", "Competence", "Insurance", "Relationships"], ans: 2, explain: "RIBA's 3 principles: Integrity, Competence, Relationships. Insurance is ARB Standard 8." },
-  { q: "In Design-and-Build, who receives the brief directly from the client?", opts: ["The architect", "The QS", "The contractor", "The project manager"], ans: 2, explain: "In Design-and-Build, the contractor receives the brief directly from the client and undertakes both design and construction." },
-  { q: "Which organisational framework uses project leaders between the principal and assistants?", opts: ["Shallow", "Deep", "Flat", "Circular"], ans: 1, explain: "Deep framework introduces project leaders who receive instructions from the principal and direct groups of assistants." },
+  { q: "In Design-and-Build, who receives the brief directly from the client?", opts: ["The architect", "The QS", "The contractor", "The project manager"], ans: 2, explain: "In Design-and-Build, the contractor receives the brief directly from the client and undertakes both design and construction." }
 ];
 
 const CHECKLIST = [
@@ -613,293 +1021,374 @@ const CHECKLIST = [
   "Distinguish disbursements from expenses",
   "Explain termination rights and obligations",
   "Compare accrual vs cash accounting",
-  "State the Balance Sheet equation and Income Statement components",
+  "State the Balance Sheet equation and Income Statement components"
 ];
 
-// ─────────── App Component ───────────
-export default function App() {
-  const [activeLecture, setActiveLecture] = useState(0);
-  const [expandedSections, setExpandedSections] = useState({});
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [showMCQ, setShowMCQ] = useState(false);
-  const [mcqAnswers, setMcqAnswers] = useState({});
-  const [mcqRevealed, setMcqRevealed] = useState({});
-  const [revealedQuiz, setRevealedQuiz] = useState({});
-  const [showChecklist, setShowChecklist] = useState(false);
-  const [checkedItems, setCheckedItems] = useState({});
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let state = {
+  page: 'lecture',        // 'lecture' | 'mcq' | 'checklist'
+  activeLecture: 0,
+  expandedSections: {},   // key: "lectureIdx-sectionIdx" → bool
+  quizVisible: {},        // key: lectureIdx → bool
+  revealedAnswers: {},    // key: "lectureIdx-qi" → bool
+  mcqAnswers: {},         // key: qi → optIdx
+  mcqRevealed: {},        // key: qi → bool
+  checkedItems: {}        // key: i → bool
+};
 
-  const toggleSection = useCallback((key) => {
-    setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
-  }, []);
-
-  const lecture = LECTURES[activeLecture];
-
-  const progress = useMemo(() => {
-    let total = 0, done = 0;
-    LECTURES.forEach((l, li) => {
-      l.sections.forEach((_, si) => {
-        total++;
-        if (expandedSections[`${li}-${si}`]) done++;
-      });
-    });
-    return total ? Math.round((done / total) * 100) : 0;
-  }, [expandedSections]);
-
-  return (
-    <div style={{ fontFamily: "'Crimson Pro', 'Georgia', serif", background: "#FFF7F9", minHeight: "100vh", color: "#3D2B2B" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #E8B4C0; border-radius: 3px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        .nav-btn { border: none; cursor: pointer; transition: all 0.25s ease; }
-        .nav-btn:hover { transform: translateY(-1px); }
-        .card { background: white; border-radius: 16px; border: 1px solid #F5DDE3; box-shadow: 0 2px 12px rgba(200,130,160,0.08); transition: all 0.3s ease; }
-        .card:hover { box-shadow: 0 4px 20px rgba(200,130,160,0.14); }
-        .tag { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-family: 'DM Sans', sans-serif; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
-        .expand-btn { width: 100%; text-align: left; background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; }
-        .fade-in { animation: fadeIn 0.35s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        .mcq-opt { border: 2px solid #F0D0DA; border-radius: 10px; padding: 10px 14px; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; font-size: 14px; background: white; display: block; width: 100%; text-align: left; margin-bottom: 6px; }
-        .mcq-opt:hover { border-color: #D4849B; background: #FFF0F4; }
-        .mcq-opt.selected { border-color: #C06080; background: #FDE8EF; }
-        .mcq-opt.correct { border-color: #6BAF7B; background: #E8F5EC; }
-        .mcq-opt.wrong { border-color: #D46B6B; background: #FDECEC; }
-        .sidebar-overlay { position: fixed; inset: 0; background: rgba(60,30,40,0.3); z-index: 998; }
-        @media (min-width: 900px) { .sidebar-overlay { display: none !important; } }
-      `}</style>
-
-      {/* Header */}
-      <header style={{ background: "linear-gradient(135deg, #F9E0E8 0%, #F2C4D3 50%, #E8A8BE 100%)", padding: "28px 24px 22px", borderBottom: "1px solid #E8B4C0", position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", gap: 12 }}>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="nav-btn" style={{ display: "none", background: "rgba(255,255,255,0.6)", borderRadius: 10, padding: "8px 10px", fontSize: 18 }}
-            ref={el => { if (el) el.style.cssText += window.innerWidth < 900 ? ";display:block" : ";display:none"; }}>☰</button>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 2.5, textTransform: "uppercase", color: "#8C4A60", marginBottom: 4 }}>ARCG 521 — Study Guide</div>
-            <h1 style={{ fontSize: "clamp(18px, 3.5vw, 26px)", fontWeight: 700, color: "#4A1A2E", lineHeight: 1.2 }}>Architectural Professional Practice</h1>
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#8C4A60", marginTop: 4 }}>University of Bahrain · Lectures 1–5 · Complete Exam Preparation</div>
-          </div>
-          <div style={{ textAlign: "right", fontFamily: "'DM Sans', sans-serif" }}>
-            <div style={{ fontSize: 11, color: "#8C4A60", fontWeight: 600, marginBottom: 4 }}>Study Progress</div>
-            <div style={{ width: 120, height: 8, background: "#F5D0DB", borderRadius: 4, overflow: "hidden" }}>
-              <div style={{ width: `${progress}%`, height: "100%", background: "linear-gradient(90deg, #D4849B, #B05C78)", borderRadius: 4, transition: "width 0.5s ease" }} />
-            </div>
-            <div style={{ fontSize: 11, color: "#8C4A60", marginTop: 2 }}>{progress}%</div>
-          </div>
-        </div>
-      </header>
-
-      <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", gap: 0, position: "relative" }}>
-        {/* Sidebar */}
-        {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
-        <nav style={{
-          width: 260, minWidth: 260, padding: "20px 16px", borderRight: "1px solid #F0D0DA", background: "#FFFAFB",
-          position: window.innerWidth < 900 ? "fixed" : "sticky", top: window.innerWidth < 900 ? 0 : 100, height: window.innerWidth < 900 ? "100vh" : "calc(100vh - 100px)",
-          overflowY: "auto", zIndex: 999,
-          transform: window.innerWidth < 900 && !sidebarOpen ? "translateX(-100%)" : "translateX(0)", transition: "transform 0.3s ease"
-        }}>
-          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "#B0758A", marginBottom: 16, paddingLeft: 8 }}>Lectures</div>
-          {LECTURES.map((l, i) => (
-            <button key={i} onClick={() => { setActiveLecture(i); setShowQuiz(false); setShowMCQ(false); setShowChecklist(false); setSidebarOpen(false); }}
-              className="nav-btn"
-              style={{
-                display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 12px", borderRadius: 10, marginBottom: 4, textAlign: "left",
-                background: activeLecture === i ? "linear-gradient(135deg, #F9E0E8, #F0C8D8)" : "transparent",
-                color: activeLecture === i ? "#6A2040" : "#6B4A55", fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: activeLecture === i ? 600 : 400
-              }}>
-              <span style={{ fontSize: 18 }}>{l.icon}</span>
-              <span style={{ lineHeight: 1.3 }}>{l.title}</span>
-            </button>
-          ))}
-          <div style={{ height: 1, background: "#F0D0DA", margin: "16px 0" }} />
-          <button onClick={() => { setShowMCQ(true); setShowQuiz(false); setShowChecklist(false); setSidebarOpen(false); }} className="nav-btn"
-            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 12px", borderRadius: 10, marginBottom: 4, textAlign: "left", background: showMCQ ? "linear-gradient(135deg, #F9E0E8, #F0C8D8)" : "transparent", color: showMCQ ? "#6A2040" : "#6B4A55", fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: showMCQ ? 600 : 400 }}>
-            <span style={{ fontSize: 18 }}>📝</span><span>MCQ Bank ({MCQs.length} Questions)</span>
-          </button>
-          <button onClick={() => { setShowChecklist(true); setShowMCQ(false); setShowQuiz(false); setSidebarOpen(false); }} className="nav-btn"
-            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 12px", borderRadius: 10, marginBottom: 4, textAlign: "left", background: showChecklist ? "linear-gradient(135deg, #F9E0E8, #F0C8D8)" : "transparent", color: showChecklist ? "#6A2040" : "#6B4A55", fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: showChecklist ? 600 : 400 }}>
-            <span style={{ fontSize: 18 }}>✅</span><span>Full Marks Checklist</span>
-          </button>
-        </nav>
-
-        {/* Main content */}
-        <main style={{ flex: 1, padding: "24px clamp(16px, 3vw, 32px)", maxWidth: "calc(100% - 260px)", minWidth: 0 }}>
-
-          {/* MCQ Bank */}
-          {showMCQ && (
-            <div className="fade-in">
-              <h2 style={{ fontSize: 24, fontWeight: 700, color: "#4A1A2E", marginBottom: 6 }}>📝 Multiple Choice Question Bank</h2>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#8C5A6A", marginBottom: 24 }}>Test your knowledge across all 5 lectures. Select an answer to check.</p>
-              {MCQs.map((mcq, i) => (
-                <div key={i} className="card" style={{ padding: 20, marginBottom: 16 }}>
-                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, color: "#C06080", marginBottom: 8 }}>QUESTION {i + 1}</div>
-                  <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 14, lineHeight: 1.5 }}>{mcq.q}</p>
-                  {mcq.opts.map((opt, j) => {
-                    let cls = "mcq-opt";
-                    if (mcqRevealed[i]) {
-                      if (j === mcq.ans) cls += " correct";
-                      else if (mcqAnswers[i] === j) cls += " wrong";
-                    } else if (mcqAnswers[i] === j) cls += " selected";
-                    return (
-                      <button key={j} className={cls} onClick={() => {
-                        if (!mcqRevealed[i]) {
-                          setMcqAnswers(prev => ({ ...prev, [i]: j }));
-                          setMcqRevealed(prev => ({ ...prev, [i]: true }));
-                        }
-                      }}>
-                        <span style={{ fontWeight: 600, marginRight: 8 }}>{String.fromCharCode(65 + j)}.</span> {opt}
-                      </button>
-                    );
-                  })}
-                  {mcqRevealed[i] && (
-                    <div style={{ marginTop: 12, padding: "10px 14px", background: mcqAnswers[i] === mcq.ans ? "#E8F5EC" : "#FDECEC", borderRadius: 10, fontFamily: "'DM Sans', sans-serif", fontSize: 13, lineHeight: 1.5 }}>
-                      {mcqAnswers[i] === mcq.ans ? "✅ Correct! " : "❌ Incorrect. "}{mcq.explain}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Checklist */}
-          {showChecklist && (
-            <div className="fade-in">
-              <h2 style={{ fontSize: 24, fontWeight: 700, color: "#4A1A2E", marginBottom: 6 }}>✅ Full Marks Checklist</h2>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#8C5A6A", marginBottom: 24 }}>Can you confidently explain each of these? Check off as you master them.</p>
-              <div className="card" style={{ padding: 20 }}>
-                {CHECKLIST.map((item, i) => (
-                  <label key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 0", borderBottom: i < CHECKLIST.length - 1 ? "1px solid #F5DDE3" : "none", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontSize: 14, lineHeight: 1.5 }}>
-                    <input type="checkbox" checked={!!checkedItems[i]} onChange={() => setCheckedItems(prev => ({ ...prev, [i]: !prev[i] }))}
-                      style={{ marginTop: 3, accentColor: "#C06080", width: 18, height: 18 }} />
-                    <span style={{ textDecoration: checkedItems[i] ? "line-through" : "none", color: checkedItems[i] ? "#B0A0A6" : "#3D2B2B" }}>{item}</span>
-                  </label>
-                ))}
-                <div style={{ marginTop: 16, textAlign: "center", fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#8C5A6A" }}>
-                  {Object.values(checkedItems).filter(Boolean).length} / {CHECKLIST.length} mastered
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Lecture content */}
-          {!showMCQ && !showChecklist && (
-            <div className="fade-in" key={activeLecture}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-                <span style={{ fontSize: 36 }}>{lecture.icon}</span>
-                <div>
-                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "#C06080" }}>Lecture {lecture.id}</div>
-                  <h2 style={{ fontSize: "clamp(20px, 3.5vw, 28px)", fontWeight: 700, color: "#4A1A2E", lineHeight: 1.2 }}>{lecture.title}</h2>
-                </div>
-              </div>
-              <div style={{ height: 2, background: "linear-gradient(90deg, #E8A8BE, transparent)", marginBottom: 24, borderRadius: 1 }} />
-
-              {lecture.sections.map((sec, si) => {
-                const key = `${activeLecture}-${si}`;
-                const open = expandedSections[key];
-                return (
-                  <div key={si} className="card" style={{ marginBottom: 16, overflow: "hidden" }}>
-                    <button className="expand-btn" onClick={() => toggleSection(key)}
-                      style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ width: 28, height: 28, borderRadius: "50%", background: open ? "linear-gradient(135deg, #D4849B, #B05C78)" : "#F5DDE3", color: open ? "white" : "#8C4A60", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{si + 1}</span>
-                        <span style={{ fontSize: 17, fontWeight: 600, color: "#4A1A2E" }}>{sec.title}</span>
-                      </div>
-                      <span style={{ fontSize: 18, color: "#C06080", transform: open ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.25s" }}>▾</span>
-                    </button>
-
-                    {open && (
-                      <div style={{ padding: "0 20px 20px", animation: "fadeIn 0.3s ease-out" }}>
-                        {/* Simple explanation */}
-                        <div style={{ background: "#FFF5F8", borderRadius: 12, padding: 16, marginBottom: 16, borderLeft: "4px solid #E8A8BE" }}>
-                          <div className="tag" style={{ background: "#FDDFE8", color: "#A04A65", marginBottom: 8 }}>Simple Explanation</div>
-                          <p style={{ fontSize: 15, lineHeight: 1.7, color: "#5A3545" }}>{sec.simple}</p>
-                        </div>
-
-                        {/* Academic explanation */}
-                        <div style={{ background: "#FBF0F4", borderRadius: 12, padding: 16, marginBottom: 16, borderLeft: "4px solid #D4849B" }}>
-                          <div className="tag" style={{ background: "#F0C8D8", color: "#7A3050", marginBottom: 8 }}>Academic Detail</div>
-                          <p style={{ fontSize: 14, lineHeight: 1.75, color: "#4A2535" }}>{sec.academic}</p>
-                        </div>
-
-                        {/* Key Terms */}
-                        {sec.keyTerms && sec.keyTerms.length > 0 && (
-                          <div style={{ marginBottom: 16 }}>
-                            <div className="tag" style={{ background: "#E8D4F0", color: "#6A3080", marginBottom: 10 }}>Key Terms</div>
-                            <div style={{ display: "grid", gap: 8 }}>
-                              {sec.keyTerms.map((kt, ki) => (
-                                <div key={ki} style={{ background: "white", border: "1px solid #F0D0DA", borderRadius: 10, padding: "10px 14px" }}>
-                                  <span style={{ fontWeight: 700, color: "#7A3050", fontFamily: "'DM Sans', sans-serif", fontSize: 13 }}>{kt.term}:</span>{" "}
-                                  <span style={{ fontSize: 13, color: "#5A3545", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 }}>{kt.def}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Exam Points */}
-                        {sec.examPoints && sec.examPoints.length > 0 && (
-                          <div style={{ background: "#FFF8E8", borderRadius: 12, padding: 16, marginBottom: 16, border: "1px solid #F0E0C0" }}>
-                            <div className="tag" style={{ background: "#F8E8C8", color: "#8A6020", marginBottom: 10 }}>🎯 High-Yield Exam Points</div>
-                            {sec.examPoints.map((ep, ei) => (
-                              <div key={ei} style={{ display: "flex", gap: 8, marginBottom: 6, fontFamily: "'DM Sans', sans-serif", fontSize: 13, lineHeight: 1.55, color: "#5A4020" }}>
-                                <span style={{ color: "#C09030", fontWeight: 700, flexShrink: 0 }}>▸</span>
-                                <span>{ep}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Confusion points */}
-                        {sec.confusion && (
-                          <div style={{ background: "#FFF0F0", borderRadius: 12, padding: 14, marginBottom: 8, border: "1px solid #F0C8C8" }}>
-                            <div className="tag" style={{ background: "#F8D0D0", color: "#904040", marginBottom: 8 }}>⚠️ Common Confusion</div>
-                            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, lineHeight: 1.55, color: "#6A3030" }}>{sec.confusion}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* Quick Quiz Section */}
-              <div style={{ marginTop: 32 }}>
-                <button className="nav-btn" onClick={() => setShowQuiz(!showQuiz)}
-                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 24px", borderRadius: 12, background: "linear-gradient(135deg, #D4849B, #B05C78)", color: "white", fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 600, boxShadow: "0 4px 16px rgba(180,80,120,0.25)" }}>
-                  <span style={{ fontSize: 20 }}>🧠</span>
-                  {showQuiz ? "Hide" : "Show"} Active Recall — Lecture {lecture.id}
-                </button>
-
-                {showQuiz && (
-                  <div className="fade-in" style={{ marginTop: 16 }}>
-                    {lecture.quiz.map((qa, qi) => (
-                      <div key={qi} className="card" style={{ padding: 16, marginBottom: 12 }}>
-                        <p style={{ fontSize: 15, fontWeight: 600, color: "#4A1A2E", marginBottom: 10, lineHeight: 1.5 }}>Q{qi + 1}: {qa.q}</p>
-                        <button className="nav-btn" onClick={() => setRevealedQuiz(prev => ({ ...prev, [`${activeLecture}-${qi}`]: !prev[`${activeLecture}-${qi}`] }))}
-                          style={{ padding: "8px 16px", borderRadius: 8, background: revealedQuiz[`${activeLecture}-${qi}`] ? "#F0E8EB" : "#FDE8EF", color: "#8C4A60", fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600 }}>
-                          {revealedQuiz[`${activeLecture}-${qi}`] ? "Hide Answer" : "Reveal Answer"}
-                        </button>
-                        {revealedQuiz[`${activeLecture}-${qi}`] && (
-                          <div style={{ marginTop: 10, padding: "10px 14px", background: "#F5FFF5", borderRadius: 10, fontFamily: "'DM Sans', sans-serif", fontSize: 13, lineHeight: 1.6, color: "#2A5A2A", border: "1px solid #C8E8C8" }}>
-                            {qa.a}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </main>
-      </div>
-
-      {/* Footer */}
-      <footer style={{ textAlign: "center", padding: "20px 16px", borderTop: "1px solid #F0D0DA", fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#B0758A", marginTop: 40 }}>
-        ARCG 521 Study Guide · Covers Lectures 1–5 · All slide content included · Good luck on your exam! 🌸
-      </footer>
-    </div>
-  );
+// ══════════════════════════════════════════════
+//  SIDEBAR TOGGLE
+// ══════════════════════════════════════════════
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('open');
 }
+function closeSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  sb.classList.remove('open');
+  ov.classList.remove('open');
+}
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+function showPage(page, lectureIdx) {
+  closeSidebar();
+  if (page === 'lecture') {
+    state.page = 'lecture';
+    state.activeLecture = lectureIdx;
+  } else {
+    state.page = page;
+  }
+  updateNavHighlight();
+  renderMain();
+}
+
+function updateNavHighlight() {
+  // lectures
+  LECTURES.forEach((_, i) => {
+    const btn = document.getElementById('nav-lec-' + i);
+    if (btn) btn.classList.toggle('active', state.page === 'lecture' && state.activeLecture === i);
+  });
+  const mcqBtn = document.getElementById('nav-mcq');
+  const clBtn = document.getElementById('nav-checklist');
+  if (mcqBtn) mcqBtn.classList.toggle('active', state.page === 'mcq');
+  if (clBtn) clBtn.classList.toggle('active', state.page === 'checklist');
+}
+
+// ══════════════════════════════════════════════
+//  PROGRESS
+// ══════════════════════════════════════════════
+function updateProgress() {
+  let total = 0, done = 0;
+  LECTURES.forEach((l, li) => {
+    l.sections.forEach((_, si) => {
+      total++;
+      if (state.expandedSections[li + '-' + si]) done++;
+    });
+  });
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+}
+
+// ══════════════════════════════════════════════
+//  SECTION TOGGLE
+// ══════════════════════════════════════════════
+function toggleSection(key) {
+  state.expandedSections[key] = !state.expandedSections[key];
+  updateProgress();
+  // Re-render just the section button and body
+  const btn = document.getElementById('sec-btn-' + key);
+  const body = document.getElementById('sec-body-' + key);
+  const num = document.getElementById('sec-num-' + key);
+  const arrow = document.getElementById('sec-arrow-' + key);
+  if (!btn) return;
+  const open = state.expandedSections[key];
+  num.className = 'sec-num ' + (open ? 'open' : 'closed');
+  arrow.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+  if (open) {
+    body.style.display = 'block';
+  } else {
+    body.style.display = 'none';
+  }
+}
+
+// ══════════════════════════════════════════════
+//  QUIZ TOGGLE
+// ══════════════════════════════════════════════
+function toggleQuiz(li) {
+  state.quizVisible[li] = !state.quizVisible[li];
+  const container = document.getElementById('quiz-container-' + li);
+  const btn = document.getElementById('quiz-btn-' + li);
+  if (container) {
+    container.style.display = state.quizVisible[li] ? 'block' : 'none';
+  }
+  if (btn) {
+    btn.textContent = (state.quizVisible[li] ? '🧠 Hide' : '🧠 Show') + ' Active Recall — Lecture ' + LECTURES[li].id;
+  }
+}
+
+function toggleAnswer(key) {
+  state.revealedAnswers[key] = !state.revealedAnswers[key];
+  const ansDiv = document.getElementById('ans-' + key);
+  const revBtn = document.getElementById('rev-btn-' + key);
+  if (ansDiv) ansDiv.style.display = state.revealedAnswers[key] ? 'block' : 'none';
+  if (revBtn) {
+    revBtn.textContent = state.revealedAnswers[key] ? 'Hide Answer' : 'Reveal Answer';
+    revBtn.className = 'reveal-btn ' + (state.revealedAnswers[key] ? 'shown-ans' : 'hidden-ans');
+  }
+}
+
+// ══════════════════════════════════════════════
+//  MCQ
+// ══════════════════════════════════════════════
+function selectMCQ(qi, optIdx) {
+  if (state.mcqRevealed[qi]) return;
+  state.mcqAnswers[qi] = optIdx;
+  state.mcqRevealed[qi] = true;
+  // Update options styling
+  const mcq = MCQs[qi];
+  mcq.opts.forEach((_, j) => {
+    const btn = document.getElementById('mcq-opt-' + qi + '-' + j);
+    if (!btn) return;
+    btn.className = 'mcq-opt';
+    if (j === mcq.ans) btn.classList.add('correct');
+    else if (j === optIdx) btn.classList.add('wrong');
+  });
+  // Show explanation
+  const expl = document.getElementById('mcq-explain-' + qi);
+  if (expl) {
+    expl.style.display = 'block';
+    expl.style.background = optIdx === mcq.ans ? '#E8F5EC' : '#FDECEC';
+    expl.textContent = (optIdx === mcq.ans ? '✅ Correct! ' : '❌ Incorrect. ') + mcq.explain;
+  }
+}
+
+// ══════════════════════════════════════════════
+//  CHECKLIST
+// ══════════════════════════════════════════════
+function toggleCheck(i) {
+  state.checkedItems[i] = !state.checkedItems[i];
+  const lbl = document.getElementById('cl-lbl-' + i);
+  if (lbl) lbl.className = 'checklist-label' + (state.checkedItems[i] ? ' done' : '');
+  const inp = document.getElementById('cl-inp-' + i);
+  if (inp) inp.checked = !!state.checkedItems[i];
+  const prog = document.getElementById('cl-prog');
+  if (prog) {
+    const done = Object.values(state.checkedItems).filter(Boolean).length;
+    prog.textContent = done + ' / ' + CHECKLIST.length + ' mastered';
+  }
+}
+
+// ══════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════
+function e(tag, attrs, ...children) {
+  // Tiny HTML builder helper
+  const attrStr = Object.entries(attrs || {}).map(([k, v]) => {
+    if (v === null || v === undefined) return '';
+    return ` ${k}="${String(v).replace(/"/g, '&quot;')}"`;
+  }).join('');
+  const inner = children.map(c => c == null ? '' : String(c)).join('');
+  const voids = ['input', 'br', 'hr', 'img'];
+  if (voids.includes(tag)) return `<${tag}${attrStr}>`;
+  return `<${tag}${attrStr}>${inner}</${tag}>`;
+}
+
+function renderSectionContent(sec, li, si) {
+  const key = li + '-' + si;
+  const open = !!state.expandedSections[key];
+  let body = '';
+  if (open) {
+    // Simple
+    body += `<div class="section-body" id="sec-body-${key}">`;
+    body += `<div class="simple-block"><span class="tag" style="background:#FDDFE8;color:#A04A65;">Simple Explanation</span><p class="block-text">${sec.simple}</p></div>`;
+    // Academic
+    body += `<div class="academic-block"><span class="tag" style="background:#F0C8D8;color:#7A3050;">Academic Detail</span><p class="academic-text">${sec.academic}</p></div>`;
+    // Key Terms
+    if (sec.keyTerms && sec.keyTerms.length) {
+      body += `<div style="margin-bottom:14px;"><span class="tag" style="background:#E8D4F0;color:#6A3080;">Key Terms</span><div class="terms-grid" style="margin-top:8px;">`;
+      sec.keyTerms.forEach(kt => {
+        body += `<div class="term-card"><span class="term-name">${kt.term}:</span> ${kt.def}</div>`;
+      });
+      body += `</div></div>`;
+    }
+    // Exam points
+    if (sec.examPoints && sec.examPoints.length) {
+      body += `<div class="exam-block"><span class="tag" style="background:#F8E8C8;color:#8A6020;">🎯 High-Yield Exam Points</span>`;
+      sec.examPoints.forEach(ep => {
+        body += `<div class="exam-point"><span class="exam-bullet">▸</span><span>${ep}</span></div>`;
+      });
+      body += `</div>`;
+    }
+    // Confusion
+    if (sec.confusion) {
+      body += `<div class="confusion-block"><span class="tag" style="background:#F8D0D0;color:#904040;">⚠️ Common Confusion</span><p class="confusion-text">${sec.confusion}</p></div>`;
+    }
+    body += `</div>`;
+  } else {
+    body += `<div class="section-body" id="sec-body-${key}" style="display:none;"></div>`;
+  }
+
+  return `
+    <div class="card" style="margin-bottom:14px;overflow:hidden;">
+      <button class="expand-btn" id="sec-btn-${key}" onclick="toggleSection('${key}')">
+        <div class="expand-btn-left">
+          <span class="sec-num ${open ? 'open' : 'closed'}" id="sec-num-${key}">${si + 1}</span>
+          <span class="sec-title">${sec.title}</span>
+        </div>
+        <span class="expand-arrow" id="sec-arrow-${key}" style="transform:${open ? 'rotate(180deg)' : 'rotate(0deg)'}">▾</span>
+      </button>
+      ${body}
+    </div>`;
+}
+
+function renderLecturePage() {
+  const li = state.activeLecture;
+  const lecture = LECTURES[li];
+  let html = `<div class="fade-in">`;
+
+  // Header
+  html += `
+    <div class="lecture-header">
+      <span class="lecture-icon">${lecture.icon}</span>
+      <div>
+        <div class="lecture-lbl">Lecture ${lecture.id}</div>
+        <div class="lecture-title">${lecture.title}</div>
+      </div>
+    </div>
+    <div class="lecture-divider"></div>`;
+
+  // Sections
+  lecture.sections.forEach((sec, si) => {
+    html += renderSectionContent(sec, li, si);
+  });
+
+  // Quiz
+  const quizOpen = !!state.quizVisible[li];
+  html += `
+    <div style="margin-top:28px;">
+      <button class="quiz-toggle-btn" id="quiz-btn-${li}" onclick="toggleQuiz(${li})">
+        ${quizOpen ? '🧠 Hide' : '🧠 Show'} Active Recall — Lecture ${lecture.id}
+      </button>
+      <div id="quiz-container-${li}" class="fade-in" style="margin-top:16px;display:${quizOpen ? 'block' : 'none'};">`;
+
+  lecture.quiz.forEach((qa, qi) => {
+    const rKey = li + '-' + qi;
+    const revealed = !!state.revealedAnswers[rKey];
+    html += `
+      <div class="card quiz-item" style="margin-bottom:10px;">
+        <p class="quiz-q">Q${qi + 1}: ${qa.q}</p>
+        <button class="reveal-btn ${revealed ? 'shown-ans' : 'hidden-ans'}" id="rev-btn-${rKey}" onclick="toggleAnswer('${rKey}')">
+          ${revealed ? 'Hide Answer' : 'Reveal Answer'}
+        </button>
+        <div class="quiz-answer" id="ans-${rKey}" style="display:${revealed ? 'block' : 'none'};">${qa.a}</div>
+      </div>`;
+  });
+
+  html += `</div></div></div>`;
+  return html;
+}
+
+function renderMCQPage() {
+  let html = `<div class="fade-in">
+    <div class="page-title">📝 Multiple Choice Question Bank</div>
+    <div class="page-sub">Test your knowledge across all 5 lectures. Select an answer to check.</div>`;
+
+  MCQs.forEach((mcq, qi) => {
+    const revealed = !!state.mcqRevealed[qi];
+    html += `
+      <div class="card" style="padding:18px;margin-bottom:14px;">
+        <div style="font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;color:#C06080;margin-bottom:7px;letter-spacing:1px;">QUESTION ${qi + 1}</div>
+        <p style="font-size:15px;font-weight:600;margin-bottom:12px;line-height:1.5;color:#4A1A2E;">${mcq.q}</p>`;
+
+    mcq.opts.forEach((opt, j) => {
+      let cls = 'mcq-opt';
+      if (revealed) {
+        if (j === mcq.ans) cls += ' correct';
+        else if (state.mcqAnswers[qi] === j) cls += ' wrong';
+      } else if (state.mcqAnswers[qi] === j) cls += ' selected';
+      html += `<button id="mcq-opt-${qi}-${j}" class="${cls}" onclick="selectMCQ(${qi},${j})">
+        <span style="font-weight:600;margin-right:6px;">${String.fromCharCode(65 + j)}.</span>${opt}
+      </button>`;
+    });
+
+    const answer = state.mcqAnswers[qi];
+    const correct = answer === mcq.ans;
+    html += `
+      <div class="mcq-explain" id="mcq-explain-${qi}" 
+        style="display:${revealed ? 'block' : 'none'};background:${correct ? '#E8F5EC' : '#FDECEC'};">
+        ${revealed ? ((correct ? '✅ Correct! ' : '❌ Incorrect. ') + mcq.explain) : ''}
+      </div>
+    </div>`;
+  });
+
+  html += `</div>`;
+  return html;
+}
+
+function renderChecklistPage() {
+  const done = Object.values(state.checkedItems).filter(Boolean).length;
+  let html = `<div class="fade-in">
+    <div class="page-title">✅ Full Marks Checklist</div>
+    <div class="page-sub">Can you confidently explain each of these? Check off as you master them.</div>
+    <div class="card" style="padding:18px;">`;
+
+  CHECKLIST.forEach((item, i) => {
+    const checked = !!state.checkedItems[i];
+    html += `
+      <div>
+        <label class="checklist-item" onclick="toggleCheck(${i})">
+          <input type="checkbox" id="cl-inp-${i}" ${checked ? 'checked' : ''} onclick="event.stopPropagation();toggleCheck(${i})">
+          <span id="cl-lbl-${i}" class="checklist-label${checked ? ' done' : ''}">${item}</span>
+        </label>
+        ${i < CHECKLIST.length - 1 ? '<hr class="checklist-divider">' : ''}
+      </div>`;
+  });
+
+  html += `<div class="checklist-progress" id="cl-prog">${done} / ${CHECKLIST.length} mastered</div>`;
+  html += `</div></div>`;
+  return html;
+}
+
+function renderMain() {
+  const main = document.getElementById('main-content');
+  if (state.page === 'lecture') {
+    main.innerHTML = renderLecturePage();
+  } else if (state.page === 'mcq') {
+    main.innerHTML = renderMCQPage();
+  } else if (state.page === 'checklist') {
+    main.innerHTML = renderChecklistPage();
+  }
+  main.scrollTop = 0;
+  window.scrollTo(0, 0);
+}
+
+// ══════════════════════════════════════════════
+//  BUILD SIDEBAR NAV
+// ══════════════════════════════════════════════
+function buildSidebarNav() {
+  const nav = document.getElementById('lecture-nav');
+  nav.innerHTML = LECTURES.map((l, i) =>
+    `<button id="nav-lec-${i}" class="nav-item${i === 0 ? ' active' : ''}" onclick="showPage('lecture', ${i})">
+      <span class="nav-icon">${l.icon}</span>
+      <span>${l.title}</span>
+    </button>`
+  ).join('');
+}
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+buildSidebarNav();
+renderMain();
+updateProgress();
+</script>
+</body>
+</html>
